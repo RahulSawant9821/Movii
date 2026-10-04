@@ -1,5 +1,5 @@
-from fastapi import FastAPI
-
+from fastapi import FastAPI,HTTPException
+from schema.initial import MovieCreate, MovieResponse
 app = FastAPI()
 
 Movies = [
@@ -15,6 +15,11 @@ Movies = [
     {"MovieId": 10, "MovieName": "The Dark Knight", "Director": "Christopher Nolan", "Language": "English, French, Spanish"},
 ]
 
+#helper function
+def getNextMovieId():
+    last_movie = Movies[-1]
+    return last_movie["MovieId"] + 1
+
 # Simple get request
 @app.get('/getMovies')
 def getMovies():
@@ -22,10 +27,12 @@ def getMovies():
 
 # Get Request using Path parameter
 @app.get('/getMovie/{id}')
-def getMovie(id:int):
+def getMovie_id(id:int):
     for movie in Movies:
         if movie.get('MovieId') == id:
             return movie
+
+    raise HTTPException(status_code=404,detail="Movie Not Found")
 
 # Get Request using Query Parameter
 @app.get('/getMovie')
@@ -35,3 +42,14 @@ def getMovie(MovieName:str):
         if movie.get('MovieName').casefold() == MovieName.casefold() :
             MovieSet.append(movie)
             return MovieSet
+
+    raise HTTPException(status_code=404,detail="Movie Not Found")
+
+
+# simple post request
+@app.post('/AddMovie',response_model=MovieResponse)
+def add_movie(movie:MovieCreate):
+    movie_dict = movie.model_dump()
+    movie_dict["MovieId"] = getNextMovieId()
+    Movies.append(movie_dict)
+    return movie_dict
